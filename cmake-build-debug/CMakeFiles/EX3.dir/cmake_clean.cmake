@@ -1,5 +1,8 @@
 file(REMOVE_RECURSE
+  "CMakeFiles/EX3.dir/boundedQueue.c.o"
   "CMakeFiles/EX3.dir/main.c.o"
+  "CMakeFiles/EX3.dir/players.c.o"
+  "CMakeFiles/EX3.dir/unboundedQueue.c.o"
   "EX3"
   "EX3.pdb"
 )

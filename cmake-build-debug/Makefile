@@ -129,6 +129,30 @@ EX3/fast:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/EX3.dir/build.make CMakeFiles/EX3.dir/build
 .PHONY : EX3/fast
 
+boundedQueue.o: boundedQueue.c.o
+.PHONY : boundedQueue.o
+
+# target to build an object file
+boundedQueue.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/EX3.dir/build.make CMakeFiles/EX3.dir/boundedQueue.c.o
+.PHONY : boundedQueue.c.o
+
+boundedQueue.i: boundedQueue.c.i
+.PHONY : boundedQueue.i
+
+# target to preprocess a source file
+boundedQueue.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/EX3.dir/build.make CMakeFiles/EX3.dir/boundedQueue.c.i
+.PHONY : boundedQueue.c.i
+
+boundedQueue.s: boundedQueue.c.s
+.PHONY : boundedQueue.s
+
+# target to generate assembly for a file
+boundedQueue.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/EX3.dir/build.make CMakeFiles/EX3.dir/boundedQueue.c.s
+.PHONY : boundedQueue.c.s
+
 main.o: main.c.o
 .PHONY : main.o
 
@@ -153,6 +177,54 @@ main.c.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/EX3.dir/build.make CMakeFiles/EX3.dir/main.c.s
 .PHONY : main.c.s
 
+players.o: players.c.o
+.PHONY : players.o
+
+# target to build an object file
+players.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/EX3.dir/build.make CMakeFiles/EX3.dir/players.c.o
+.PHONY : players.c.o
+
+players.i: players.c.i
+.PHONY : players.i
+
+# target to preprocess a source file
+players.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/EX3.dir/build.make CMakeFiles/EX3.dir/players.c.i
+.PHONY : players.c.i
+
+players.s: players.c.s
+.PHONY : players.s
+
+# target to generate assembly for a file
+players.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/EX3.dir/build.make CMakeFiles/EX3.dir/players.c.s
+.PHONY : players.c.s
+
+unboundedQueue.o: unboundedQueue.c.o
+.PHONY : unboundedQueue.o
+
+# target to build an object file
+unboundedQueue.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/EX3.dir/build.make CMakeFiles/EX3.dir/unboundedQueue.c.o
+.PHONY : unboundedQueue.c.o
+
+unboundedQueue.i: unboundedQueue.c.i
+.PHONY : unboundedQueue.i
+
+# target to preprocess a source file
+unboundedQueue.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/EX3.dir/build.make CMakeFiles/EX3.dir/unboundedQueue.c.i
+.PHONY : unboundedQueue.c.i
+
+unboundedQueue.s: unboundedQueue.c.s
+.PHONY : unboundedQueue.s
+
+# target to generate assembly for a file
+unboundedQueue.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/EX3.dir/build.make CMakeFiles/EX3.dir/unboundedQueue.c.s
+.PHONY : unboundedQueue.c.s
+
 # Help Target
 help:
 	@echo "The following are some of the valid targets for this Makefile:"
@@ -162,9 +234,18 @@ help:
 	@echo "... edit_cache"
 	@echo "... rebuild_cache"
 	@echo "... EX3"
+	@echo "... boundedQueue.o"
+	@echo "... boundedQueue.i"
+	@echo "... boundedQueue.s"
 	@echo "... main.o"
 	@echo "... main.i"
 	@echo "... main.s"
+	@echo "... players.o"
+	@echo "... players.i"
+	@echo "... players.s"
+	@echo "... unboundedQueue.o"
+	@echo "... unboundedQueue.i"
+	@echo "... unboundedQueue.s"
 .PHONY : help
 
 

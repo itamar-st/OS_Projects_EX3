@@ -76,7 +76,25 @@
 				</MakeCommands>
 			</Target>
 		</Build>
+		<Unit filename="/home/itamar/OS_projects/EX3/boundedQueue.c">
+			<Option target="EX3"/>
+		</Unit>
+		<Unit filename="/home/itamar/OS_projects/EX3/boundedQueue.h">
+			<Option target="EX3"/>
+		</Unit>
 		<Unit filename="/home/itamar/OS_projects/EX3/main.c">
+			<Option target="EX3"/>
+		</Unit>
+		<Unit filename="/home/itamar/OS_projects/EX3/players.c">
+			<Option target="EX3"/>
+		</Unit>
+		<Unit filename="/home/itamar/OS_projects/EX3/players.h">
+			<Option target="EX3"/>
+		</Unit>
+		<Unit filename="/home/itamar/OS_projects/EX3/unboundedQueue.c">
+			<Option target="EX3"/>
+		</Unit>
+		<Unit filename="/home/itamar/OS_projects/EX3/unboundedQueue.h">
 			<Option target="EX3"/>
 		</Unit>
 		<Unit filename="/home/itamar/OS_projects/EX3/CMakeLists.txt">

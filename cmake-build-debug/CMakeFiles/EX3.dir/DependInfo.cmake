@@ -8,7 +8,10 @@ set(CMAKE_DEPENDS_LANGUAGES
   )
 # The set of files for implicit dependencies of each language:
 set(CMAKE_DEPENDS_CHECK_C
+  "/home/itamar/OS_projects/EX3/boundedQueue.c" "/home/itamar/OS_projects/EX3/cmake-build-debug/CMakeFiles/EX3.dir/boundedQueue.c.o"
   "/home/itamar/OS_projects/EX3/main.c" "/home/itamar/OS_projects/EX3/cmake-build-debug/CMakeFiles/EX3.dir/main.c.o"
+  "/home/itamar/OS_projects/EX3/players.c" "/home/itamar/OS_projects/EX3/cmake-build-debug/CMakeFiles/EX3.dir/players.c.o"
+  "/home/itamar/OS_projects/EX3/unboundedQueue.c" "/home/itamar/OS_projects/EX3/cmake-build-debug/CMakeFiles/EX3.dir/unboundedQueue.c.o"
   )
 set(CMAKE_C_COMPILER_ID "GNU")
 

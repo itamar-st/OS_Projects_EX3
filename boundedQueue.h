@@ -16,7 +16,7 @@ bQueue* createQueue(unsigned capacity);
 int isFull(bQueue* queue);
 int isEmpty(bQueue* queue);
 void enqueue(bQueue* queue, char* item);
-char* dequeue(bQueue* queue);
+const char* dequeue(bQueue* queue);
 int front(bQueue* queue);
 int rear(bQueue* queue);
 void delqueue(bQueue* queue);

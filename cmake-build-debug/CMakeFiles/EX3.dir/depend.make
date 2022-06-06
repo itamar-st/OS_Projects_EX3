@@ -6,7 +6,8 @@ CMakeFiles/EX3.dir/boundedQueue.c.o: \
  ../boundedQueue.h
 CMakeFiles/EX3.dir/main.c.o: \
  ../boundedQueue.h \
- ../main.c
+ ../main.c \
+ ../unboundedQueue.h
 CMakeFiles/EX3.dir/players.c.o: \
  ../boundedQueue.h \
  ../players.c \

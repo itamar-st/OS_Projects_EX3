@@ -6,17 +6,17 @@
 #define EX3_UNBOUNDEDQUEUE_H
 // A structure to represent a queue
 
-struct ubQueue {
+typedef struct ubQueue {
     int front, rear, size;
     unsigned capacity;
     int* array;
-};
+} ubQueue;
 struct ubQueue* ubqCreateQueue(unsigned capacity);
-int ubqIsFull(struct ubQueue* queue);
-int ubqisEmpty(struct ubQueue* queue);
-void ubqEnqueue(struct ubQueue* queue, int item);
-int ubqDequeue(struct ubQueue* queue);
-int ubqFront(struct ubQueue* queue);
-int ubqRear(struct ubQueue* queue);
+int ubqIsFull( ubQueue* queue);
+int ubqisEmpty( ubQueue* queue);
+void ubqEnqueue( ubQueue* queue, int item);
+int ubqDequeue( ubQueue* queue);
+int ubqFront( ubQueue* queue);
+int ubqRear( ubQueue* queue);
 
 #endif //EX3_UNBOUNDEDQUEUE_H

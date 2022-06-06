@@ -23,7 +23,7 @@ bQueue* createQueue(unsigned capacity)
     // This is important, see the enqueue
     queue->rear = capacity - 1;
     queue->array = (char**)malloc(queue->capacity * sizeof(char*));
-    if((ret = sem_init(&full,0,capacity)) != 0 ){
+    if((ret = sem_init(&full,0,0)) != 0 ){
         perror("sem_init full");
     }
     if((ret = sem_init(&empty,0,capacity)) != 0 ){
@@ -49,8 +49,8 @@ int isEmpty(struct bQueue* queue)
 // It changes rear and size
 void enqueue(bQueue* queue, char* item)
 {
-    if((ret = sem_post(&empty)) != 0){
-        perror("sem_post empty");
+    if((ret = sem_wait(&empty)) != 0){
+        perror("sem_trywait empty");
     }
     pthread_mutex_lock(&lock);
     if (isFull(queue)) {
@@ -62,28 +62,27 @@ void enqueue(bQueue* queue, char* item)
     printf("%s enqueued to queue\n", item);
 
     pthread_mutex_unlock(&lock);
-    if((ret = sem_trywait(&full)) != 0){
-        perror("sem_trywait full");
+
+    if((ret = sem_post(&full)) != 0){
+        perror("sem_post full");
     }
 }
 
 // Function to remove an item from queue.
 // It changes front and size
-char* dequeue(struct bQueue* queue)
+const char* dequeue(struct bQueue* queue)
 {
-    if((ret = sem_post(&full)) != 0){
-        perror("sem_post full");
+    if((ret = sem_wait(&full)) != 0){
+        perror("sem_wait full");
     }
     pthread_mutex_lock(&lock);
-    if (isEmpty(queue))
-        return INT_MIN;
-    char* item = queue->array[queue->front];
+    const char* item = queue->array[queue->front];
     queue->front = (queue->front + 1) % queue->capacity;
     queue->size = queue->size - 1;
-    printf("%s dequeued to queue\n", item);
+    printf("%s removed from queue\n", item);
     pthread_mutex_unlock(&lock);
-    if((ret = sem_trywait(&empty)) != 0){
-        perror("sem_trywait empty");
+    if((ret = sem_post(&empty)) != 0){
+        perror("sem_post empty");
     }
     return item;
 

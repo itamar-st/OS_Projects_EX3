@@ -29,6 +29,9 @@ bQueue* createQueue(unsigned capacity)
     if((ret = sem_init(&empty,0,capacity)) != 0 ){
         perror("sem_init empty");
     }
+    if((ret = pthread_mutex_init(&lock,PTHREAD_MUTEX_DEFAULT)) != 0){
+        perror("pthread_mutex_init");
+    }
     return queue;
 }
 

@@ -9,9 +9,7 @@ CMakeFiles/EX3.dir/main.c.o: \
  ../main.c \
  ../unboundedQueue.h
 CMakeFiles/EX3.dir/players.c.o: \
- ../boundedQueue.h \
- ../players.c \
- ../players.h
+ ../players.c
 CMakeFiles/EX3.dir/unboundedQueue.c.o: \
  ../unboundedQueue.c \
  ../unboundedQueue.h

@@ -6,9 +6,9 @@
 #define EX3_BOUNDEDQUEUE_H
 // A structure to represent a queue
 
-pthread_mutex_t lock;
-sem_t full;
-sem_t empty;
+pthread_mutex_t* producerLock;
+sem_t* producerFull;
+sem_t* producerEmpty;
 
 pthread_mutex_t screenMngLock;
 sem_t screenMngFull;

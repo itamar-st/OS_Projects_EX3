@@ -37,7 +37,7 @@ typedef struct editorThreadArgs{
 
 void* producer(void* args){
     producerThreadArgs a = *(producerThreadArgs *) args;
-
+    printf("enter to producer %d\n", a.producerNum);
     char* newstype[3] = {" SPORTS ", " NEWS ", " WEATHER "};
     int newsCount[3];
     int numOfProd = a.num_of_products;
@@ -55,47 +55,49 @@ void* producer(void* args){
         char* finalNewsToSend = (char *) malloc(sizeof(char)*32 + 1);
         strcat(finalNewsToSend, newsToSend);
 
-        if((ret = sem_wait(&empty)) != 0){
+        if((ret = sem_wait(&producerEmpty[a.producerNum - 1])) != 0){
             perror("sem_trywait empty");
         }
-        pthread_mutex_lock(&lock);
+        pthread_mutex_lock(&producerLock[a.producerNum - 1]);
         enqueue(producerQueue[a.producerNum - 1], finalNewsToSend);
-        pthread_mutex_unlock(&lock);
+        pthread_mutex_unlock(&producerLock[a.producerNum - 1]);
 
-        if((ret = sem_post(&full)) != 0){
+        if((ret = sem_post(&producerFull[a.producerNum - 1])) != 0){
             perror("sem_post full");
         }
 
         newsCount[i%3]++;
     }
-    if((ret = sem_wait(&empty)) != 0){
+    if((ret = sem_wait(&producerEmpty[a.producerNum] - 1)) != 0){
         perror("sem_trywait empty");
     }
-    pthread_mutex_lock(&lock);
+    pthread_mutex_lock(&producerLock[a.producerNum - 1]);
     enqueue(producerQueue[a.producerNum - 1], "DONE");
     printf("producer - DONE\n");
-    pthread_mutex_unlock(&lock);
+    pthread_mutex_unlock(&producerLock[a.producerNum - 1]);
 
-    if((ret = sem_post(&full)) != 0){
+    if((ret = sem_post(&producerFull[a.producerNum - 1])) != 0){
         perror("sem_post full");
     }
 }
 
 void* dispatcher(void* args){
+    int numOfProducers = (int) args;
+    int producerIndex = 0;
     printf("enter to dispatcher\n");
     const char* currentNews;
     while (1){
 //        int val1;
 //        sem_getvalue(&full,&val1);
 //        printf("-----------------dispatcher - val of full:   %d\n", val1);
-        if((ret = sem_wait(&full)) != 0){
+        if((ret = sem_wait(&producerFull[producerIndex])) != 0){
             perror("sem_wait full");
         }
-        pthread_mutex_lock(&lock);
-        currentNews = dequeue(producerQueue[0]);   // todo: change 0 to producerQueue[a.producerNum - 1]
-        pthread_mutex_unlock(&lock);
+        pthread_mutex_lock(&producerLock[producerIndex]);
+        currentNews = dequeue(producerQueue[producerIndex]);   // todo: change 0 to producerQueue[a.producerNum - 1]
+        pthread_mutex_unlock(&producerLock[producerIndex]);
 
-        if((ret = sem_post(&empty)) != 0){
+        if((ret = sem_post(&producerEmpty[producerIndex])) != 0){
             perror("sem_post empty");
         }
 
@@ -105,15 +107,17 @@ void* dispatcher(void* args){
 //            int val;
 //            sem_getvalue(&editorEmpty[0],&val);
 //            printf("-----------------val:   %d", val);
-            if((ret = sem_wait(&editorEmpty[0])) != 0){
-                perror("sem_trywait empty");
-            }
-            pthread_mutex_lock(&editorLock[0]);
-            ubqEnqueue(editorsQueue[0], "DONE");
-            pthread_mutex_unlock(&editorLock[0]);
-
-            if((ret = sem_post(&editorFull[0])) != 0){
-                perror("sem_post full");
+            int editorNum;
+            for (editorNum = 0; editorNum <= 2; ++editorNum) {
+                if((ret = sem_wait(&editorEmpty[editorNum])) != 0){
+                    perror("sem_trywait empty");
+                }
+                pthread_mutex_lock(&editorLock[editorNum]);
+                ubqEnqueue(editorsQueue[editorNum], "DONE");
+                pthread_mutex_unlock(&editorLock[editorNum]);
+                if((ret = sem_post(&editorFull[editorNum])) != 0){
+                    perror("sem_post full");
+                }
             }
             printf("dispatcher - DONE\n");
             break;
@@ -125,47 +129,29 @@ void* dispatcher(void* args){
         strtok(item, s);
         strtok(NULL, s);
         token = strtok(NULL, s);
+        int queueToEnter;
         if(strcmp(token, "SPORTS") == 0){
-            if((ret = sem_wait(&editorEmpty[0])) != 0){
-                perror("sem_trywait empty");
-            }
-            pthread_mutex_lock(&editorLock[0]);
-            ubqEnqueue(editorsQueue[0], currentNews);
-            pthread_mutex_unlock(&editorLock[0]);
-
-            if((ret = sem_post(&editorFull[0])) != 0){
-                perror("sem_post full");
-            }
-            printf("dispatcher SPORTS\n");
+            queueToEnter = 0;
         }
-//        else if(strcmp(token, "NEWS") == 0){
-//            if((ret = sem_wait(&editorEmpty[1])) != 0){
-//                perror("sem_trywait empty");
-//            }
-//            pthread_mutex_lock(&editorLock[1]);
-//            ubqEnqueue(editorsQueue[1], currentNews);
-//            pthread_mutex_unlock(&editorLock[1]);
-//
-//            if((ret = sem_post(&editorFull[1])) != 0){
-//                perror("sem_post full");
-//            }            printf("dispatcher NEWS\n");
-//        }
-//        else if(strcmp(token, "WEATHER") == 0){
-//            if((ret = sem_wait(&editorEmpty[2])) != 0){
-//                perror("sem_trywait empty");
-//            }
-//            pthread_mutex_lock(&editorLock[2]);
-//            ubqEnqueue(editorsQueue[2], currentNews);
-//            pthread_mutex_unlock(&editorLock[2]);
-//
-//            if((ret = sem_post(&editorFull[2])) != 0){
-//                perror("sem_post full");
-//            }            printf("dispatcher WEATHER\n");
-//        }
+        else if(strcmp(token, "NEWS") == 0){
+            queueToEnter = 1;
+        }
+        else if(strcmp(token, "WEATHER") == 0){
+            queueToEnter = 2;
+        }
+        if((ret = sem_wait(&editorEmpty[queueToEnter])) != 0){
+            perror("sem_trywait empty");
+        }
+        pthread_mutex_lock(&editorLock[queueToEnter]);
+        ubqEnqueue(editorsQueue[queueToEnter], currentNews);
+        pthread_mutex_unlock(&editorLock[queueToEnter]);
+        if((ret = sem_post(&editorFull[queueToEnter])) != 0){
+            perror("sem_post full");
+        }
+
+        producerIndex = (producerIndex + 1) % numOfProducers;
+        printf("dispatcher enter msg to queue: %d\n", queueToEnter);
     }
-//    ubqEnqueue(sportsQueue, "DONE");
-//    ubqEnqueue(newsQueue,"DONE");
-//    ubqEnqueue(weatherQueue, "DONE");
 
 }
 
@@ -174,65 +160,82 @@ void* editor(void* args) {
     printf("enter to editor %d\n", threadArgs.editorNum);
 
     char *currentMsg = "";
-    while (strcmp(currentMsg, "DONE") != 0) {
+    while (1) {
 //        int val;
 //        sem_getvalue(&editorFull[0],&val);
 //        printf("-----------------editor full val:   %d\n", val);
         if((edRet = sem_wait(&editorFull[threadArgs.editorNum])) != 0){
             perror("sem_wait editorFull");
         }
-        pthread_mutex_lock(&lock);
+        pthread_mutex_lock(&editorLock[threadArgs.editorNum]);
         currentMsg = ubqDequeue(editorsQueue[threadArgs.editorNum]);
-        usleep(100000);
-        enqueue(screenMngQueue, currentMsg);
-        pthread_mutex_unlock(&lock);
-
+        pthread_mutex_unlock(&editorLock[threadArgs.editorNum]);
         if((edRet = sem_post(&editorEmpty[threadArgs.editorNum])) != 0){
+            perror("sem_post editorEmpty");
+        }
+
+        if(strcmp(currentMsg, "DONE") == 0){
+            if((edRet = sem_wait(&screenMngEmpty)) != 0){
+                perror("sem_wait editorFull");
+            }
+            pthread_mutex_lock(&screenMngLock);
+            enqueue(screenMngQueue, currentMsg);
+            pthread_mutex_unlock(&screenMngLock);
+            if((edRet = sem_post(&screenMngFull)) != 0){
+                perror("sem_post editorEmpty");
+            }
+            break;
+        }
+
+        usleep(100000);
+        if((edRet = sem_wait(&screenMngEmpty)) != 0){
+            perror("sem_wait editorFull");
+        }
+        pthread_mutex_lock(&screenMngLock);
+        enqueue(screenMngQueue, currentMsg);
+        pthread_mutex_unlock(&screenMngLock);
+        if((edRet = sem_post(&screenMngFull)) != 0){
             perror("sem_post editorEmpty");
         }
 //        printf("from editor %d: %s\n", threadArgs.editorNum, currentMsg);
     }
-    if((edRet = sem_wait(&editorFull[threadArgs.editorNum])) != 0){
-        perror("sem_wait editorFull");
-    }
-    pthread_mutex_lock(&lock);
-    currentMsg = ubqDequeue(editorsQueue[threadArgs.editorNum]);
-    enqueue(screenMngQueue, currentMsg);
-    pthread_mutex_unlock(&lock);
 
-    if((edRet = sem_post(&editorEmpty[threadArgs.editorNum])) != 0){
-        perror("sem_post editorEmpty");
-    }
     printf("CO - EDITOR %d - DONE\n", threadArgs.editorNum);
 }
 
 void* screenManager(void* args) {
-    char* queueSize = (char *) args;
     printf("enter to screen Manager\n");
+    int doneCounter = 0;
+    char *msgFromQueue = "";
+    while (1) {
 
-    char *currentMsg = "";
-    while (strcmp(currentMsg, "DONE") != 0) {
 //        int val;
 //        sem_getvalue(&editorFull[0],&val);
 //        printf("-----------------editor full val:   %d\n", val);
-        if((edRet = sem_wait(&screenMngFull) != 0){
+        if((edRet = sem_wait(&screenMngFull)) != 0){
             perror("sem_wait editorFull");
         }
-        pthread_mutex_lock(&lock);
-        currentMsg = dequeue(screenMngQueue);
-        usleep(100000);
-        pthread_mutex_unlock(&lock);
-
-        if((edRet = sem_post(&screenMngEmpty) != 0){
+        pthread_mutex_lock(&screenMngLock);
+        msgFromQueue = dequeue(screenMngQueue);
+        pthread_mutex_unlock(&screenMngLock);
+        if((edRet = sem_post(&screenMngEmpty)) != 0){
             perror("sem_post editorEmpty");
         }
-        printf("from editor %d: %s\n", threadArgs.editorNum, currentMsg);
-    }
 
-    printf("SCREEN MANAGER - DONE\n");
+        if(strcmp(msgFromQueue, "DONE") == 0){
+            doneCounter++;
+            if(doneCounter == 3){ // todo: change to 3
+                printf("---------DONE---------\n");
+                break;
+            }
+        } else{
+            printf("%s\n", msgFromQueue);
+        }
+    }
 }
 int main(int argc, char *argv[])
 {
+    // read the conf file and check how many lines in there
     FILE* confFD;
     if((confFD=fopen(argv[1],"r"))== NULL){
         perror("open conf");
@@ -250,44 +253,51 @@ int main(int argc, char *argv[])
     }
     fclose(confFD);
 
-
+    // every 4 lines = one producer
     numOfLines = numOfLines/4;
     producerThread = (pthread_t*) malloc(numOfLines * sizeof(pthread_t));
     producerQueue = (bQueue**) malloc(numOfLines * sizeof(bQueue*));
+    producerLock = (pthread_mutex_t*) malloc(numOfLines * sizeof(pthread_mutex_t));
+    producerEmpty = (sem_t*) malloc(numOfLines * sizeof(sem_t));
+    producerFull = (sem_t*) malloc(numOfLines * sizeof(sem_t));
 
+    //todo: free memory
     if((confFD=fopen(argv[1],"r"))== NULL){
         perror("open conf");
         exit(-1);
     }
     char* line = NULL;
     size_t lineSize = 32;
+    // init producers queue and thread
     int j;
-    producerThreadArgs producerArgs;
+    producerThreadArgs producerArgs[numOfLines];
     for(j=0; j<numOfLines; j++){
         getline(&line, &lineSize, confFD);
-        producerArgs.producerNum = atoi(line);
+        producerArgs[j].producerNum = atoi(line);
         getline(&line, &lineSize, confFD);
-        producerArgs.num_of_products = atoi(line);
+        producerArgs[j].num_of_products = atoi(line);
         getline(&line, &lineSize, confFD);
-        producerArgs.buff_size = atoi(line);
+        producerArgs[j].buff_size = atoi(line);
         getline(&line, &lineSize, confFD);
-        producerQueue[producerArgs.producerNum -1] = createQueue(producerArgs.buff_size);
-        if((ret = sem_init(&full,0,0)) != 0 ){
+        producerQueue[producerArgs[j].producerNum -1] = createQueue(producerArgs[j].buff_size);
+        if((ret = sem_init(&producerFull[producerArgs[j].producerNum -1],0,0)) != 0 ){
             perror("sem_init full");
         }
-        if((ret = sem_init(&empty,0, producerArgs.buff_size)) != 0 ){
+        if((ret = sem_init(&producerEmpty[producerArgs[j].producerNum -1],0, producerArgs[j].buff_size)) != 0 ){
             perror("sem_init empty");
         }
-        if((ret = pthread_mutex_init(&lock,PTHREAD_MUTEX_DEFAULT)) != 0){
+        if((ret = pthread_mutex_init(&producerLock[producerArgs[j].producerNum -1],PTHREAD_MUTEX_DEFAULT)) != 0){
             perror("pthread_mutex_init");
         }
-        pthread_create(&producerThread[producerArgs.producerNum - 1], NULL, producer, &producerArgs );
+        pthread_create(&producerThread[producerArgs[j].producerNum - 1], NULL, producer, &producerArgs[j] );
         printf("thread created\n");
     }
 
+    // last line is co editor's shared queue
     getline(&line, &lineSize, confFD);
     fclose(confFD);
 
+    // init screen manager queue and thread
     screenMngQueue = createQueue(atoi(line));
     if ((edRet = sem_init(&screenMngFull, 0, 0)) != 0) {
         perror("sem_init full");
@@ -300,51 +310,51 @@ int main(int argc, char *argv[])
     }
 
     int t;
-    editorThreadArgs editorArgs; //todo: change
-    for (t = 0; t <= 0; ++t) {
-        editorArgs.editorNum = t;
-        editorArgs.queueInitSize = EDITOR_INIT_QUEUE_SIZE;
-        editorsQueue[editorArgs.editorNum] = ubqCreateQueue(editorArgs.queueInitSize);
-        if ((edRet = sem_init(&editorFull[editorArgs.editorNum], 0, 0)) != 0) {
+    editorThreadArgs editorArgs[3]; //todo: change
+    for (t = 0; t <= 2; ++t) {
+        editorArgs[t].editorNum = t;
+        editorArgs[t].queueInitSize = EDITOR_INIT_QUEUE_SIZE;
+        editorsQueue[editorArgs[t].editorNum] = ubqCreateQueue(editorArgs[t].queueInitSize);
+        if ((edRet = sem_init(&editorFull[editorArgs[t].editorNum], 0, 0)) != 0) {
             perror("sem_init full");
         }
-        if ((edRet = sem_init(&editorEmpty[editorArgs.editorNum], 0, editorArgs.queueInitSize)) != 0) {
+        if ((edRet = sem_init(&editorEmpty[editorArgs[t].editorNum], 0, editorArgs[t].queueInitSize)) != 0) {
             perror("sem_init empty");
         }
-        if ((edRet = pthread_mutex_init(&editorLock[editorArgs.editorNum], PTHREAD_MUTEX_DEFAULT)) != 0) {
+        if ((edRet = pthread_mutex_init(&editorLock[editorArgs[t].editorNum], PTHREAD_MUTEX_DEFAULT)) != 0) {
             perror("pthread_mutex_init");
         }
-        pthread_create(&editorThread[t], NULL, editor, &editorArgs );
+        pthread_create(&editorThread[t], NULL, editor, &editorArgs[t] );
 
     }
 
+    // init dispatcher thread
     void* retVal;
-    usleep(100000);
-    pthread_create(&dispatcherThread, NULL, dispatcher, NULL );
+    pthread_create(&dispatcherThread, NULL, dispatcher, (void *) numOfLines);
 
-//    pthread_create(&screenMngThread, NULL, screenManager, NULL );
+    pthread_create(&screenMngThread, NULL, screenManager, NULL );
 
     int q;
 
-    for(q=0; q<1; ++q){
-        if(pthread_join(editorThread[q],&retVal) != 0){
-            perror("pthread_join editorThread");
-        }
+    if(pthread_join(screenMngThread, &retVal) != 0){
+        perror("pthread_join screen manager thread");
     }
+    // free queue and semaphore for producers
     for(q=0; q<numOfLines; ++q){
         delqueue(producerQueue[q]);
-    }
-    if((ret = pthread_mutex_destroy(&lock)) != 0){
-        perror("pthread_mutex_destroy ");
-    }
-    if((ret = sem_destroy(&full)) != 0){
-        perror("sem_destroy full");
-    }
-    if((ret = sem_destroy(&empty)) != 0){
-        perror("sem_destroy empty");
+        if((ret = pthread_mutex_destroy(&producerLock[q])) != 0){
+            perror("pthread_mutex_destroy ");
+        }
+        if((ret = sem_destroy(&producerFull[q])) != 0){
+            perror("sem_destroy full");
+        }
+        if((ret = sem_destroy(&producerEmpty[q])) != 0){
+            perror("sem_destroy empty");
+        }
     }
 
-    for(q=0; q<1; ++q){
+    // free queue and semaphore for editors
+    for(q=0; q<=2; ++q){
         ubqDelqueue(editorsQueue[q]);
         if((edRet = pthread_mutex_destroy(&editorLock[q])) != 0 ){
             perror("pthread_mutex_destroy editorFull");
@@ -356,7 +366,23 @@ int main(int argc, char *argv[])
             perror("sem_destroy editorEmpty");
         }
     }
+    // free queue and semaphore for screen manager
+    delqueue(screenMngQueue);
+    if((edRet = pthread_mutex_destroy(&screenMngLock)) != 0 ){
+        perror("pthread_mutex_destroy editorFull");
+    }
+    if((edRet = sem_destroy(&screenMngFull)) != 0){
+        perror("sem_destroy editorFull");
+    }
+    if((edRet = sem_destroy(&screenMngEmpty)) != 0){
+        perror("sem_destroy editorEmpty");
+    }
 
+    free(producerThread);
+    free(producerQueue);
+    free(producerLock);
+    free(producerEmpty);
+    free(producerFull);
 
 
     return 0;

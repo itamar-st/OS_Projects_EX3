@@ -52,6 +52,10 @@ char* dequeue(bQueue* queue)
 }
 
 void delqueue(bQueue* queue){
+    int i;
+    for (i = 0; i < queue->size; ++i) {
+        free(queue->array[i]);
+    }
     free(queue->array);
 
 }

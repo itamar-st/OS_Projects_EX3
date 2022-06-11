@@ -15,6 +15,7 @@ bQueue** producerQueue;
 pthread_t* producerThread;
 
 pthread_t dispatcherThread;
+int* producerDoneArr;
 
 pthread_t screenMngThread;
 bQueue* screenMngQueue;
@@ -84,73 +85,82 @@ void* producer(void* args){
 void* dispatcher(void* args){
     int numOfProducers = (int) args;
     int producerIndex = 0;
+    int numOfDones = 0;
     printf("enter to dispatcher\n");
     const char* currentNews;
     while (1){
 //        int val1;
 //        sem_getvalue(&full,&val1);
 //        printf("-----------------dispatcher - val of full:   %d\n", val1);
-        if((ret = sem_wait(&producerFull[producerIndex])) != 0){
-            perror("sem_wait full");
-        }
-        pthread_mutex_lock(&producerLock[producerIndex]);
-        currentNews = dequeue(producerQueue[producerIndex]);   // todo: change 0 to producerQueue[a.producerNum - 1]
-        pthread_mutex_unlock(&producerLock[producerIndex]);
+        if(producerDoneArr[producerIndex] == 0){
+            if((ret = sem_wait(&producerFull[producerIndex])) != 0){
+                perror("sem_wait full");
+            }
+            pthread_mutex_lock(&producerLock[producerIndex]);
+            currentNews = dequeue(producerQueue[producerIndex]);   // todo: change 0 to producerQueue[a.producerNum - 1]
+            pthread_mutex_unlock(&producerLock[producerIndex]);
 
-        if((ret = sem_post(&producerEmpty[producerIndex])) != 0){
-            perror("sem_post empty");
-        }
+            if((ret = sem_post(&producerEmpty[producerIndex])) != 0){
+                perror("sem_post empty");
+            }
 
-        char item[32] = "";
-        strcpy(item, currentNews);
-        if(strcmp(item, "DONE") == 0){
+            char item[32] = "";
+            strcpy(item, currentNews);
+            if(strcmp(item, "DONE") == 0){
 //            int val;
 //            sem_getvalue(&editorEmpty[0],&val);
 //            printf("-----------------val:   %d", val);
-            int editorNum;
-            for (editorNum = 0; editorNum <= 2; ++editorNum) {
-                if((ret = sem_wait(&editorEmpty[editorNum])) != 0){
-                    perror("sem_trywait empty");
+                numOfDones++;
+                producerDoneArr[producerIndex] = 1;
+                if (numOfDones == numOfProducers){
+                    int editorNum;
+                    for (editorNum = 0; editorNum <= 2; ++editorNum) {
+                        if((ret = sem_wait(&editorEmpty[editorNum])) != 0){
+                            perror("sem_trywait empty");
+                        }
+                        pthread_mutex_lock(&editorLock[editorNum]);
+                        ubqEnqueue(editorsQueue[editorNum], "DONE");
+                        pthread_mutex_unlock(&editorLock[editorNum]);
+                        if((ret = sem_post(&editorFull[editorNum])) != 0){
+                            perror("sem_post full");
+                        }
+                    }
+                    printf("dispatcher - DONE\n");
+                    break;
                 }
-                pthread_mutex_lock(&editorLock[editorNum]);
-                ubqEnqueue(editorsQueue[editorNum], "DONE");
-                pthread_mutex_unlock(&editorLock[editorNum]);
-                if((ret = sem_post(&editorFull[editorNum])) != 0){
-                    perror("sem_post full");
-                }
+                producerIndex = (producerIndex + 1) % numOfProducers;
+                continue;
             }
-            printf("dispatcher - DONE\n");
-            break;
-        }
 
-        const char s[2] = " ";
-        char* token;
-        /* get the third token */
-        strtok(item, s);
-        strtok(NULL, s);
-        token = strtok(NULL, s);
-        int queueToEnter;
-        if(strcmp(token, "SPORTS") == 0){
-            queueToEnter = 0;
-        }
-        else if(strcmp(token, "NEWS") == 0){
-            queueToEnter = 1;
-        }
-        else if(strcmp(token, "WEATHER") == 0){
-            queueToEnter = 2;
-        }
-        if((ret = sem_wait(&editorEmpty[queueToEnter])) != 0){
-            perror("sem_trywait empty");
-        }
-        pthread_mutex_lock(&editorLock[queueToEnter]);
-        ubqEnqueue(editorsQueue[queueToEnter], currentNews);
-        pthread_mutex_unlock(&editorLock[queueToEnter]);
-        if((ret = sem_post(&editorFull[queueToEnter])) != 0){
-            perror("sem_post full");
-        }
+            const char s[2] = " ";
+            char* token;
+            /* get the third token */
+            strtok(item, s);
+            strtok(NULL, s);
+            token = strtok(NULL, s);
+            int queueToEnter;
+            if(strcmp(token, "SPORTS") == 0){
+                queueToEnter = 0;
+            }
+            else if(strcmp(token, "NEWS") == 0){
+                queueToEnter = 1;
+            }
+            else if(strcmp(token, "WEATHER") == 0){
+                queueToEnter = 2;
+            }
+            if((ret = sem_wait(&editorEmpty[queueToEnter])) != 0){
+                perror("sem_trywait empty");
+            }
+            pthread_mutex_lock(&editorLock[queueToEnter]);
+            ubqEnqueue(editorsQueue[queueToEnter], currentNews);
+            pthread_mutex_unlock(&editorLock[queueToEnter]);
+            if((ret = sem_post(&editorFull[queueToEnter])) != 0){
+                perror("sem_post full");
+            }
 
+            printf("dispatcher enter msg to queue: %d\n", queueToEnter);
+        }
         producerIndex = (producerIndex + 1) % numOfProducers;
-        printf("dispatcher enter msg to queue: %d\n", queueToEnter);
     }
 
 }
@@ -260,6 +270,7 @@ int main(int argc, char *argv[])
     producerLock = (pthread_mutex_t*) malloc(numOfLines * sizeof(pthread_mutex_t));
     producerEmpty = (sem_t*) malloc(numOfLines * sizeof(sem_t));
     producerFull = (sem_t*) malloc(numOfLines * sizeof(sem_t));
+    producerDoneArr = (int*) malloc(numOfLines * sizeof(int));
 
     //todo: free memory
     if((confFD=fopen(argv[1],"r"))== NULL){
@@ -272,6 +283,7 @@ int main(int argc, char *argv[])
     int j;
     producerThreadArgs producerArgs[numOfLines];
     for(j=0; j<numOfLines; j++){
+        producerDoneArr[j] = 0;
         getline(&line, &lineSize, confFD);
         producerArgs[j].producerNum = atoi(line);
         getline(&line, &lineSize, confFD);
@@ -367,7 +379,7 @@ int main(int argc, char *argv[])
         }
     }
     // free queue and semaphore for screen manager
-    delqueue(screenMngQueue);
+    free(screenMngQueue->array);
     if((edRet = pthread_mutex_destroy(&screenMngLock)) != 0 ){
         perror("pthread_mutex_destroy editorFull");
     }
@@ -383,6 +395,7 @@ int main(int argc, char *argv[])
     free(producerLock);
     free(producerEmpty);
     free(producerFull);
+    free(producerDoneArr);
 
 
     return 0;
